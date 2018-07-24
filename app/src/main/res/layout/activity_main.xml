@@ -3,11 +3,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context="com.ibtikar.downloadsvgkt.MainActivity">
 
     <TextView
         android:id="@+id/memory_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        tools:progress="50"
+        android:progressTint="@color/colorAccent" />
 
 </LinearLayout>

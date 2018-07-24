@@ -6,6 +6,8 @@ package com.ibtikar.downloadsvgkt.utils;
 
 import android.util.Log;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -16,47 +18,66 @@ import java.util.zip.ZipInputStream;
  * @author jon
  */
 public class Decompress {
-    private String _zipFile;
-    private String _location;
+    ProgressHelper progressHelper;
 
-    public Decompress(String zipFile, String location) {
-        _zipFile = zipFile;
-        _location = location;
-
-        _dirChecker("");
+    public Decompress(String zipFile, String location, ProgressHelper progressHelper) {
+        this.progressHelper = progressHelper;
+        extractZip(zipFile, location);
     }
 
-    public void unzip() {
+    private boolean extractZip(String pathOfZip, String pathToExtract) {
+
+        int BUFFER_SIZE = 1024;
+        int size;
+        byte[] buffer = new byte[BUFFER_SIZE];
+
         try {
-            FileInputStream fin = new FileInputStream(_zipFile);
-            ZipInputStream zin = new ZipInputStream(fin);
-            ZipEntry ze = null;
-            while ((ze = zin.getNextEntry()) != null) {
-                Log.v("Decompress", "Unzipping " + ze.getName());
-
-                if (ze.isDirectory()) {
-                    _dirChecker(ze.getName());
-                } else {
-                    FileOutputStream fout = new FileOutputStream(_location + ze.getName());
-                    for (int c = zin.read(); c != -1; c = zin.read()) {
-                        fout.write(c);
-                    }
-                    zin.closeEntry();
-                    fout.close();
-                }
-
+            File f = new File(pathToExtract);
+            if (!f.isDirectory()) {
+                f.mkdirs();
             }
-            zin.close();
+            ZipInputStream zin = new ZipInputStream(new BufferedInputStream(new FileInputStream(pathOfZip), BUFFER_SIZE));
+            try {
+                ZipEntry ze = null;
+                while ((ze = zin.getNextEntry()) != null) {
+                    String path = pathToExtract + "/" + ze.getName();
+
+                    if (ze.isDirectory()) {
+                        File unzipFile = new File(path);
+                        if (!unzipFile.isDirectory()) {
+                            unzipFile.mkdirs();
+                        }
+                    } else {
+                        FileOutputStream out = new FileOutputStream(path, false);
+                        BufferedOutputStream fout = new BufferedOutputStream(out, BUFFER_SIZE);
+                        try {
+                            int total = 0;
+                            while ((size = zin.read(buffer, 0, BUFFER_SIZE)) != -1) {
+                                total += size;
+                                fout.write(buffer, 0, size);
+                                progressHelper.addProgress(total, ze.getSize());
+                            }
+
+                            zin.closeEntry();
+                        } catch (Exception e) {
+                            Log.e("Exception", "Unzip exception 1:" + e.toString());
+                        } finally {
+                            fout.flush();
+                            fout.close();
+
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("Exception", "Unzip exception2 :" + e.toString());
+            } finally {
+                zin.close();
+            }
+            return true;
         } catch (Exception e) {
-            Log.e("Decompress", "unzip", e);
+            Log.e("Exception", "Unzip exception :" + e.toString());
         }
-    }
+        return false;
 
-    private void _dirChecker(String dir) {
-        File f = new File(_location + dir);
-
-        if (!f.isDirectory()) {
-            f.mkdirs();
-        }
     }
-} 
+}
